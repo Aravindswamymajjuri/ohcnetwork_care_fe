@@ -1,9 +1,8 @@
-
-name: Email Alert for New Issues
+name: Email Alert for Issues and Pull Requests
 
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "*/15 * * * *"   # runs every 15 minutes
   workflow_dispatch:
 
 jobs:
@@ -11,14 +10,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check new issues in original repo
+      - name: Check new Issues and Pull Requests
         uses: actions/github-script@v7
         with:
           script: |
             const owner = "ohcnetwork";
             const repo = "care_fe";
 
-            const issues = await github.rest.issues.listForRepo({
+            // Fetch latest open issues & PRs
+            const response = await github.rest.issues.listForRepo({
               owner,
               repo,
               state: "open",
@@ -27,17 +27,20 @@ jobs:
               per_page: 1
             });
 
-            const issue = issues.data[0];
+            const item = response.data[0];
 
-            if (issue && !issue.assignee) {
+            if (item && !item.assignee) {
+              const type = item.pull_request ? "Pull Request" : "Issue";
+
               core.exportVariable("SEND_EMAIL", "true");
-              core.exportVariable("ISSUE_TITLE", issue.title);
-              core.exportVariable("ISSUE_URL", issue.html_url);
+              core.exportVariable("ITEM_TYPE", type);
+              core.exportVariable("ITEM_TITLE", item.title);
+              core.exportVariable("ITEM_URL", item.html_url);
             } else {
               core.exportVariable("SEND_EMAIL", "false");
             }
 
-      - name: Send Email
+      - name: Send Email Notification
         if: env.SEND_EMAIL == 'true'
         uses: dawidd6/action-send-mail@v3
         with:
@@ -45,12 +48,13 @@ jobs:
           server_port: 587
           username: ${{ secrets.EMAIL_USER }}
           password: ${{ secrets.EMAIL_PASS }}
-          subject: "🚨 New Issue in care_fe"
+          subject: "🚨 New ${{ env.ITEM_TYPE }} in care_fe"
           body: |
-            A new unassigned issue has been created.
+            A new unassigned ${{ env.ITEM_TYPE }} has been created in the repository.
 
-            Title: ${{ env.ISSUE_TITLE }}
-            Link: ${{ env.ISSUE_URL }}
+            Title: ${{ env.ITEM_TITLE }}
+            Link: ${{ env.ITEM_URL }}
+
+            Repository: ohcnetwork/care_fe
           to: aravindswamymajjuri143@gmail.com, kadaripavani1@gmail.com
-          from: GitHub Issue Bot <aravindswamymajjuri143@gmail.com>
-          
+          from: GitHub Notification Bot <aravindswamymajjuri143@gmail.com>
