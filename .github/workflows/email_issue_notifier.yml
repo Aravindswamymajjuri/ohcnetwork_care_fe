@@ -1,8 +1,9 @@
+
 name: Email Alert for New Issues
 
 on:
   schedule:
-    - cron: "*/15 * * * *"   # every 15 minutes
+    - cron: "*/15 * * * *"
   workflow_dispatch:
 
 jobs:
@@ -11,7 +12,6 @@ jobs:
 
     steps:
       - name: Check new issues in original repo
-        id: notify   # ✅ THIS WAS MISSING
         uses: actions/github-script@v7
         with:
           script: |
@@ -30,14 +30,15 @@ jobs:
             const issue = issues.data[0];
 
             if (issue && !issue.assignee) {
-              core.setOutput("title", issue.title);
-              core.setOutput("url", issue.html_url);
+              core.exportVariable("SEND_EMAIL", "true");
+              core.exportVariable("ISSUE_TITLE", issue.title);
+              core.exportVariable("ISSUE_URL", issue.html_url);
             } else {
-              core.setOutput("url", "");
+              core.exportVariable("SEND_EMAIL", "false");
             }
 
       - name: Send Email
-        if: steps.notify.outputs.url != ''
+        if: env.SEND_EMAIL == 'true'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -48,8 +49,8 @@ jobs:
           body: |
             A new unassigned issue has been created.
 
-            Title: ${{ steps.notify.outputs.title }}
-            Link: ${{ steps.notify.outputs.url }}
+            Title: ${{ env.ISSUE_TITLE }}
+            Link: ${{ env.ISSUE_URL }}
           to: aravindswamymajjuri143@gmail.com, kadaripavani1@gmail.com
           from: GitHub Issue Bot <aravindswamymajjuri143@gmail.com>
           
