@@ -3,6 +3,7 @@ import { GENDER_TYPES } from "@/common/constants";
 import { Permissions } from "@/types/emr/permission/permission";
 import { FacilityBareMinimum } from "@/types/facility/facility";
 import { Organization } from "@/types/organization/organization";
+import { UserPreference } from "./userPreferences";
 
 export type UserType =
   | "doctor"
@@ -28,6 +29,7 @@ export interface UserReadMinimal extends UserBase {
   profile_picture_url: string;
   mfa_enabled: boolean;
   deleted: boolean;
+  is_service_account: boolean;
 }
 
 export interface UserRead extends UserReadMinimal {
@@ -52,6 +54,7 @@ export interface CurrentUserRead extends UserRead, Permissions {
   pf_endpoint: string | null;
   pf_p256dh: string | null;
   pf_auth: string | null;
+  preferences: UserPreference;
 }
 
 // Todo: Once backend adds a proper public user read spec, add it here and update the usages where applicable
@@ -63,4 +66,16 @@ export interface UserUpdate extends Omit<UserBase, "id"> {
 export interface UserCreate extends UserUpdate {
   password?: string;
   email: string;
+  is_service_account?: boolean;
+}
+
+export interface GetServiceAccountsResponse {
+  external_id: string;
+  username: string;
+}
+
+export interface GenerateServiceAccountTokenResponse {
+  token: string;
+  user: string;
+  created: string;
 }
